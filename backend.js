@@ -1,39 +1,61 @@
-const { Sequelize }=require('sequelize')
+const express = require('express');
+const cors = require('cors');
+const { Sequelize } = require('sequelize');
 
-const main = async () => {
- 
-    const sequelize=new Sequelize('orders','root','20281128',{
-        dialect:'mysql',
-        host:'172.24.65.85',
-        port:3306,
-        logging:false,
-    
-    })
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
-    const dbConnection = async () => {
-        try {
-            await sequelize.authenticate();
-            console.log('mysql Connection successful !!! ');
-            const [results, metadata] = await sequelize.query("SELECT * FROM menu");
-            console.log(results)
-    // Results will be an empty array and metadata will contain the number of affected rows.
-        } catch (error) {
-            console.error('Unable to connect to the database:', error);
-        }
-    
-    }
-    dbConnection();
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
+
+app.post('/connectDB', handleConnect);
+app.post('/queryDB', handleQuery);
+
+let sequelize;
+
+async function handleConnect(req, res) {
+  // 处理接口 1 的请求
+  let postConnectData = req.body;
+  // console.log(req.body);
+  let returnValue = await dbConnection(
+    postConnectData['url'], 
+    postConnectData['port'], 
+    postConnectData['userName'], 
+    postConnectData['passwd']
+  );
+  res.send(returnValue);
 }
 
-const runMain = async () => {
-    try {
-        await main();
-        process.exit(0);
-    }
-    catch(e) {
-        console.error(e);
-        process.exit(1);
-    }
+async function handleQuery(req, res) {
+  // 处理接口 2 的请求
+  let postConnectData = req.body;
+  console.log(postConnectData);
+  const [results, metadata] = await sequelize.query(postConnectData['queryData']);
+  res.send(results);
 }
 
-runMain();
+app.listen(3000, () => {
+  console.log('Server running at http://localhost:3000/');
+});
+
+const dbConnection = async (host, port, user, passwd) => {
+  sequelize = new Sequelize('orders', user, passwd, {
+    dialect: 'mysql',
+    host: host,
+    port: port,
+    logging: false,
+  });
+  
+  try {
+    await sequelize.authenticate();
+    console.log('mysql Connection successful !!! ');
+    return Promise.resolve('connected');
+    } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    return Promise.resolve(error);
+  }
+}
