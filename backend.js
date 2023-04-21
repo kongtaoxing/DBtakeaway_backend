@@ -36,9 +36,16 @@ async function handleQuery(req, res) {
   console.log(postConnectData);
   try {
     const [results, metadata] = await sequelize.query(postConnectData['queryData']);
-    res.send(results);
+    console.log('Result:', results, typeof(results));
+    if (typeof(results) == 'number') {  // result of `INSERT` is a number
+      res.send(String(results))
+    }
+    else if (typeof(results) == 'object') {
+      res.send(results);
+    }
   }
   catch (e) {
+    console.log('Error:', e);
     res.send(e);
   }
 }
