@@ -34,8 +34,13 @@ async function handleQuery(req, res) {
   // 处理接口 2 的请求
   let postConnectData = req.body;
   console.log(postConnectData);
-  const [results, metadata] = await sequelize.query(postConnectData['queryData']);
-  res.send(results);
+  try {
+    const [results, metadata] = await sequelize.query(postConnectData['queryData']);
+    res.send(results);
+  }
+  catch (e) {
+    res.send(e);
+  }
 }
 
 app.listen(3000, () => {
