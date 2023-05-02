@@ -12,7 +12,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/connectDB', handleConnect);
+app.post('/api/connectDB', handleConnect);
+app.post('/api/signup', signup);
 app.post('/queryDB', handleQuery);
 
 let sequelize;
@@ -28,6 +29,12 @@ async function handleConnect(req, res) {
     postConnectData['passwd']
   );
   res.send(returnValue);
+}
+
+async function signup(req, res) {
+  let postConnectData = req.body;
+  console.log(postConnectData);
+  res.send('success');
 }
 
 async function handleQuery(req, res) {
