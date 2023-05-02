@@ -6,3 +6,7 @@
 ```
 npm install
 ```
+## 运行
+```
+node .\backend.js
+```
