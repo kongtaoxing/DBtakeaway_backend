@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const { Sequelize } = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize');
+const crypto = require('crypto');
 
 const app = express();
 app.use(express.json());
@@ -16,8 +17,66 @@ app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
 app.post('/queryDB', handleQuery);
 
+// 自动连接数据库
 let sequelize;
+const dbAutoConnection = async () => {
+  sequelize = new Sequelize('orders', "root", "20281128", {
+    dialect: 'mysql',
+    host: "172.24.65.85",
+    port: 3306,
+    logging: false,
+  });
+  
+  try {
+    await sequelize.authenticate();
+    console.log('mysql Connection successful !!! ');
+    return Promise.resolve('connected');
+    } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    return Promise.resolve(error);
+  }
+}
+dbAutoConnection();
 
+// 定义表们
+const Customer = sequelize.define('Customer', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    allowNull: false
+  },
+  nickname: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  phone_number: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  passwd: {
+    type: DataTypes.BLOB,
+    allowNull: false,
+    set: function (value) {
+      // 使用 MD5 对密码进行加密，并将加密结果存储在 passwd 字段中
+      let hash = crypto.createHash('md5').update(value).digest('hex');
+      this.setDataValue('passwd', Buffer.from(hash, 'hex'));
+    }
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true
+  }
+}, {
+  tableName: 'customer',
+  timestamps: false
+});
+let Admin;
+let Menu;
+let Orders;
+let Rider;
+
+// 连接数据库
 async function handleConnect(req, res) {
   // 处理接口 1 的请求
   let postConnectData = req.body;
@@ -31,12 +90,26 @@ async function handleConnect(req, res) {
   res.send(returnValue);
 }
 
+// 注册新用户
 async function signup(req, res) {
   let postConnectData = req.body;
   console.log(postConnectData);
-  res.send('success');
+  try {
+    const addUser = await Customer.create({
+      nickname: `User${Math.floor(Math.random() * (10000000)) + 1}`,
+      phone_number: Number.parseInt(postConnectData['phoneNumber']),
+      passwd: postConnectData['passwd']
+    });
+    console.log("Add user id", addUser.id);
+    res.send('success');
+  }
+  catch (e) {
+    console.log(e);
+    res.send(e);
+  }
 }
 
+// 使用MySQL语言请求数据
 async function handleQuery(req, res) {
   // 处理接口 2 的请求
   let postConnectData = req.body;
