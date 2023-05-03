@@ -15,6 +15,7 @@ app.use((req, res, next) => {
 
 app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
+app.post('/api/login', login);
 app.post('/queryDB', handleQuery);
 
 // 自动连接数据库
@@ -106,6 +107,33 @@ async function signup(req, res) {
   catch (e) {
     console.log(e);
     res.send(e);
+  }
+}
+
+// 登录
+async function login(req, res) {
+  let postConnectData = req.body;
+  let user = await Customer.findAll({
+    where: {
+      phone_number: postConnectData['phoneNumber']
+      }
+  });
+  console.log(user)
+  if (JSON.stringify(user) == '[]') {
+    res.send({errorMsg: '用户未注册！'});
+  }
+  else {
+    let userPasswd = crypto.createHash('md5').update(postConnectData['passwd']).digest('hex');
+    let dbPasswd = user[0]['dataValues']['passwd'].toString('hex');
+    if (userPasswd == dbPasswd) {
+      res.send({
+        errorMsg: 'success',
+        user: user
+      });
+    }
+    else {
+      res.send({errorMsg: '密码错误！'});
+    }
   }
 }
 
