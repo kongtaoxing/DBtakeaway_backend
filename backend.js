@@ -16,6 +16,7 @@ app.use((req, res, next) => {
 app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
 app.post('/api/login', login);
+app.post('/api/changeUser', changeUser);
 app.post('/queryDB', handleQuery);
 
 // 自动连接数据库
@@ -134,6 +135,32 @@ async function login(req, res) {
     else {
       res.send({errorMsg: '密码错误！'});
     }
+  }
+}
+
+// 更改用户数据
+async function changeUser(req, res) {
+  let postChangeData = req.body;
+  console.log(postChangeData);
+  try {
+    let updateData = await Customer.update({ 
+      phone_number: postChangeData['phoneNumber'],
+      nickname: postChangeData['nickname'],
+      address: postChangeData['address']
+    }, // 需要修改的字段
+      { where: { id: Number.parseInt(postChangeData['id']) } } // 查找条件
+    );
+    console.log('Sql data:', updateData);
+    let user = await Customer.findAll({
+      where: {
+        id: postChangeData['id']
+        }
+    });
+    res.send({message: 'success', user: user});
+  }
+  catch (e) {
+    console.log(e);
+    res.send({message: "failed"});
   }
 }
 
