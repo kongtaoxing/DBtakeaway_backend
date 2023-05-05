@@ -17,6 +17,7 @@ app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
 app.post('/api/login', login);
 app.post('/api/changeUser', changeUser);
+app.post('/api/changePasswd', changePasswd);
 app.post('/queryDB', handleQuery);
 
 // 自动连接数据库
@@ -162,6 +163,42 @@ async function changeUser(req, res) {
     console.log(e);
     res.send({message: "failed"});
   }
+}
+
+async function changePasswd(req, res) {
+  let postChangeData = req.body;
+  console.log(postChangeData);
+  let olduser = await Customer.findAll({
+    where: {
+      id: Number.parseInt(postChangeData['id'])
+      }
+  })
+  console.log("old user:", olduser[0]['passwd']);
+  if (olduser[0]['passwd'].toString('hex') != crypto.createHash('md5').update(postChangeData['oldpasswd']).digest('hex')) {
+    res.send({
+      message: "error",
+      data: "原密码输入错误！"
+    })
+  }
+  else {
+    try {
+      let changePasswdData = await Customer.update({
+        passwd: postChangeData['passwd']
+      },
+      {
+        where: {
+          id: Number.parseInt(postChangeData['id'])
+        }
+      });
+      console.log(changePasswdData);
+      res.send({message: "success"});
+    }
+    catch (e) {
+      console.log(e);
+      res.send({message: "error", data: "修改失败！"});
+    }
+  }
+  // res.send({message: "success"});
 }
 
 // 使用MySQL语言请求数据
