@@ -18,6 +18,8 @@ app.post('/api/signup', signup);
 app.post('/api/login', login);
 app.post('/api/changeUser', changeUser);
 app.post('/api/changePasswd', changePasswd);
+app.get('/api/getOrders', getOrders);
+app.get('/api/menu', getMenu);
 app.post('/queryDB', handleQuery);
 
 // 自动连接数据库
@@ -69,14 +71,97 @@ const Customer = sequelize.define('Customer', {
   address: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  isVIP: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  isAdmin: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 }, {
   tableName: 'customer',
   timestamps: false
 });
 let Admin;
-let Menu;
-let Orders;
+const Menu = sequelize.define('menu', {
+  dishes: {
+    type: Sequelize.STRING(255),
+    allowNull: false,
+    primaryKey: true,
+    comment: 'Primary Key'
+  },
+  price: {
+    type: Sequelize.INTEGER,
+    allowNull: false
+  },
+  VIPprice: {
+    type: Sequelize.INTEGER,
+    allowNull: true
+  },
+  onSale: {
+    type: Sequelize.BOOLEAN,
+    allowNull: false
+  }
+}, {
+  tableName: 'menu',
+  timestamps: false,
+  charset: 'latin1',
+  collate: 'latin1_general_ci'
+});
+
+const Orders = sequelize.define('orders', {
+  id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    primaryKey: true,
+    autoIncrement: true,
+    comment: 'Primary Key'
+  },
+  create_time: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    comment: 'Create Time'
+  },
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'customer',
+      key: 'id'
+    }
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  dishes: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    references: {
+      model: 'menu',
+      key: 'dishes'
+    }
+  },
+  confirm: {
+    type: DataTypes.TINYINT,
+    allowNull: false,
+    defaultValue: 0
+  },
+  number: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+    comment: 'number of dishes'
+  }
+}, {
+  tableName: 'orders',
+  timestamps: false,
+  engine: 'InnoDB',
+  charset: 'latin1'
+});
+
 let Rider;
 
 // 连接数据库
@@ -165,6 +250,7 @@ async function changeUser(req, res) {
   }
 }
 
+// 修改密码
 async function changePasswd(req, res) {
   let postChangeData = req.body;
   console.log(postChangeData);
@@ -199,6 +285,24 @@ async function changePasswd(req, res) {
     }
   }
   // res.send({message: "success"});
+}
+
+// 获取订单
+async function getOrders(req, res) {
+  console.log(req.query);
+  let orders = await Orders.findAll({
+    where: {
+      customerId: req.query['id']
+    }
+  });
+  res.send(orders);
+}
+
+// 获取菜单
+async function getMenu(req, res) {
+  console.log(req.body);
+  let _menu = await Menu.findAll({});
+  res.send(_menu);
 }
 
 // 使用MySQL语言请求数据
