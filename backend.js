@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize, DataTypes, where } = require('sequelize');
 const crypto = require('crypto');
+require('dotenv').config()
 
 const app = express();
 app.use(express.json());
@@ -18,6 +19,7 @@ app.post('/api/signup', signup);
 app.post('/api/login', login);
 app.post('/api/changeUser', changeUser);
 app.post('/api/changePasswd', changePasswd);
+app.post('/api/submitOrder', submitOrder);
 app.get('/api/getOrders', getOrders);
 app.get('/api/menu', getMenu);
 app.post('/queryDB', handleQuery);
@@ -25,9 +27,9 @@ app.post('/queryDB', handleQuery);
 // 自动连接数据库
 let sequelize;
 const dbAutoConnection = async () => {
-  sequelize = new Sequelize('orders', "root", "20281128", {
+  sequelize = new Sequelize('orders', "root", process.env.passwd, {
     dialect: 'mysql',
-    host: "172.24.65.85",
+    host: "49.233.41.142",
     port: 3306,
     logging: false,
   });
@@ -111,58 +113,84 @@ const Menu = sequelize.define('menu', {
   collate: 'latin1_general_ci'
 });
 
-const Orders = sequelize.define('orders', {
+const Orders = sequelize.define('Orders', {
   id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     primaryKey: true,
     autoIncrement: true,
-    comment: 'Primary Key'
+    allowNull: false
   },
   create_time: {
     type: DataTypes.DATE,
-    allowNull: false,
-    comment: 'Create Time'
+    allowNull: false
   },
   customerId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'customer',
-      key: 'id'
-    }
+    allowNull: false
   },
   endTime: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: true
   },
-  dishes: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    references: {
-      model: 'menu',
-      key: 'dishes'
-    }
-  },
-  confirm: {
-    type: DataTypes.TINYINT,
-    allowNull: false,
+  米饭: {
+    type: DataTypes.INTEGER,
     defaultValue: 0
   },
-  number: {
+  馒头: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-    comment: 'number of dishes'
+    defaultValue: 0
+  },
+  烧茄子: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  土豆丝: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  麻婆豆腐: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  sumPrice: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   }
 }, {
   tableName: 'orders',
-  timestamps: false,
-  engine: 'InnoDB',
-  charset: 'latin1'
+  timestamps: false // 如果不需要自动生成时间戳字段，可以设置为 false
 });
 
-let Rider;
+const Rider = sequelize.define('Rider', {
+  id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    primaryKey: true
+  },
+  name: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    collate: 'utf8mb4_unicode_ci'
+  },
+  orderId: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  delivered: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false
+  }
+}, {
+  tableName: 'rider',
+  timestamps: false
+});
+// 定义外键
+Customer.hasMany(Orders);
+Orders.belongsTo(Customer, { foreignKey: 'customerId'});
+Orders.hasOne(Rider);
+Rider.belongsTo(Orders, {foreignKey: 'orderId'});
+Customer.findAll({include: Orders})
+// console.log(Orders.findAll({include: Rider}));
 
 // 连接数据库
 async function handleConnect(req, res) {
@@ -290,12 +318,77 @@ async function changePasswd(req, res) {
 // 获取订单
 async function getOrders(req, res) {
   console.log(req.query);
-  let orders = await Orders.findAll({
-    where: {
-      customerId: req.query['id']
+  // 全部订单
+  let allOrders = await Orders.findAll({
+  attributes: ['id', '米饭', '馒头', '烧茄子', '土豆丝', '麻婆豆腐', 'create_time', 'endTime'],
+  include: [
+    {
+      model: Rider,
+      attributes: ['delivered'],
+      require: true
+    },
+    {
+      model: Customer,
+      attributes: ['address', 'phone_number'],
+      where: {
+        id: req.query['id']
+      }
     }
-  });
-  res.send(orders);
+  ],
+  where: {
+    customerId: req.query['id']
+  }
+});
+// // 未完成订单
+// let unfilledOrders = await Orders.findAll({
+//   attributes: ['id', '米饭', '馒头', '烧茄子', '土豆丝', '麻婆豆腐', 'create_time', 'endTime'],
+//   include: [
+//     {
+//       model: Rider,
+//       attributes: ['delivered'],
+//       require: true,
+//       where: {
+//         delivered: false
+//       }
+//     },
+//     {
+//       model: Customer,
+//       attributes: ['address', 'phone_number'],
+//       where: {
+//         id: req.query['id']
+//       }
+//     }
+//   ],
+//   where: {
+//     customerId: req.query['id']
+//   }
+// });
+// // 已完成订单
+// let filledOrders = await Orders.findAll({
+//   attributes: ['id', '米饭', '馒头', '烧茄子', '土豆丝', '麻婆豆腐', 'create_time', 'endTime'],
+//   include: [
+//     {
+//       model: Rider,
+//       attributes: ['delivered'],
+//       require: true,
+//       where: {
+//         delivered: true
+//       }
+//     },
+//     {
+//       model: Customer,
+//       attributes: ['address', 'phone_number'],
+//       where: {
+//         id: req.query['id']
+//       }
+//     }
+//   ],
+//   where: {
+//     customerId: req.query['id']
+//   }
+// });
+  res.send({
+    orders: allOrders});
 }
 
 // 获取菜单
@@ -303,6 +396,32 @@ async function getMenu(req, res) {
   console.log(req.body);
   let _menu = await Menu.findAll({});
   res.send(_menu);
+}
+
+// 提交订单
+async function submitOrder(req, res) {
+  subData = req.body;
+  console.log(subData);
+  try {
+    let addOrder = await Orders.create({
+      customerId: subData['userId'],
+      create_time: subData['dataTime'],
+      sumPrice: subData['sum'],
+      烧茄子: subData['detail']['烧茄子'] ? subData['detail']['烧茄子'] : 0,
+      米饭: subData['detail']['米饭'] ? subData['detail']['米饭'] : 0,
+      馒头: subData['detail']['馒头'] ? subData['detail']['馒头'] : 0,
+      麻婆豆腐: subData['detail']['麻婆豆腐'] ? subData['detail']['麻婆豆腐'] : 0,
+      土豆丝: subData['detail']['土豆丝'] ? subData['detail']['土豆丝'] : 0
+    })
+    res.send({message: "success"});
+  }
+  catch (e) {
+    console.log(e);
+    res.send({
+      message: "error",
+      data: e
+    })
+  }
 }
 
 // 使用MySQL语言请求数据
