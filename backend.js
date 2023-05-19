@@ -22,6 +22,7 @@ app.post('/api/changePasswd', changePasswd);
 app.post('/api/submitOrder', submitOrder);
 app.get('/api/getOrders', getOrders);
 app.get('/api/menu', getMenu);
+app.post('/api/confirm', confirmOrder);
 app.post('/queryDB', handleQuery);
 
 // 自动连接数据库
@@ -421,6 +422,32 @@ async function submitOrder(req, res) {
       message: "error",
       data: e
     })
+  }
+}
+
+// 确认订单
+async function confirmOrder(req, res) {
+  console.log(req.body);
+  try {
+    await Rider.update({
+      delivered: true,
+    },{
+      where: {
+        orderId: req.body['orderId']
+      }
+    });
+    await Orders.update({
+      endTime: req.body['dataTime'],
+    },{
+      where: {
+        id: req.body['orderId']
+      }
+    });
+  res.send({message: 'success'});
+  }
+  catch (e) {
+    console.log(e);
+    res.send({message: 'error'});
   }
 }
 
