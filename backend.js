@@ -17,6 +17,7 @@ app.use((req, res, next) => {
 app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
 app.post('/api/login', login);
+app.post('/api/becomeVIP', becomeVIP);
 app.post('/api/changeUser', changeUser);
 app.post('/api/changePasswd', changePasswd);
 app.post('/api/submitOrder', submitOrder);
@@ -77,11 +78,11 @@ const Customer = sequelize.define('Customer', {
   },
   isVIP: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true
   },
   isAdmin: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true
   }
 }, {
   tableName: 'customer',
@@ -250,6 +251,25 @@ async function login(req, res) {
     else {
       res.send({errorMsg: '密码错误！'});
     }
+  }
+}
+
+// 开通会员
+async function becomeVIP(req, res) {
+  console.log(req.body);
+  try {
+    await Customer.update({
+      isVIP: 1,
+    },{
+        where: {
+          id: req.body['userId']
+        }
+    });
+    res.send("success");
+  }
+  catch (e) {
+    console.log(e);
+    res.send('error');
   }
 }
 
