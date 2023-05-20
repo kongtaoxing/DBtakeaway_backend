@@ -17,6 +17,7 @@ app.use((req, res, next) => {
 app.post('/api/connectDB', handleConnect);
 app.post('/api/signup', signup);
 app.post('/api/login', login);
+app.get('/api/getUser', getUser);
 app.post('/api/becomeVIP', becomeVIP);
 app.post('/api/changeUser', changeUser);
 app.post('/api/changePasswd', changePasswd);
@@ -223,7 +224,7 @@ async function signup(req, res) {
   }
   catch (e) {
     console.log(e);
-    res.send(e);
+    res.send('error');
   }
 }
 
@@ -251,6 +252,23 @@ async function login(req, res) {
     else {
       res.send({errorMsg: '密码错误！'});
     }
+  }
+}
+
+// 获取用户数据
+async function getUser(req, res) {
+  console.log(req.query);
+  try {
+    let user = await Customer.findAll({
+      where: {
+        id: req.query['id']
+      }
+  });
+  res.send({message: "success", userInfo: user});
+  }
+  catch (e) {
+    console.log(e);
+    res.send({message: "error"});
   }
 }
 
