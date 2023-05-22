@@ -23,6 +23,7 @@ app.post('/api/changeUser', changeUser);
 app.post('/api/changePasswd', changePasswd);
 app.post('/api/submitOrder', submitOrder);
 app.get('/api/getOrders', getOrders);
+app.post('/api/deleteOrder', deleteOrder);
 app.get('/api/menu', getMenu);
 app.post('/api/confirm', confirmOrder);
 app.post('/queryDB', handleQuery);
@@ -78,10 +79,6 @@ const Customer = sequelize.define('Customer', {
     allowNull: true
   },
   isVIP: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  isAdmin: {
     type: DataTypes.INTEGER,
     allowNull: true
   }
@@ -158,6 +155,10 @@ const Orders = sequelize.define('Orders', {
   sumPrice: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  }, 
+  confirmed: {
+    type: DataTypes.BOOLEAN,
+    default: 0
   }
 }, {
   tableName: 'orders',
@@ -181,7 +182,7 @@ const Rider = sequelize.define('Rider', {
   },
   delivered: {
     type: DataTypes.BOOLEAN,
-    allowNull: false
+    allowNull: true
   }
 }, {
   tableName: 'rider',
@@ -359,7 +360,7 @@ async function getOrders(req, res) {
   console.log(req.query);
   // 全部订单
   let allOrders = await Orders.findAll({
-  attributes: ['id', '米饭', '馒头', '烧茄子', '土豆丝', '麻婆豆腐', 'create_time', 'endTime'],
+  attributes: ['id', '米饭', '馒头', '烧茄子', '土豆丝', '麻婆豆腐', 'create_time', 'endTime', 'confirmed'],
   include: [
     {
       model: Rider,
@@ -468,7 +469,8 @@ async function confirmOrder(req, res) {
   console.log(req.body);
   try {
     await Rider.update({
-      delivered: true,
+      delivered: null,
+      orderId: null
     },{
       where: {
         orderId: req.body['orderId']
@@ -476,6 +478,7 @@ async function confirmOrder(req, res) {
     });
     await Orders.update({
       endTime: req.body['dataTime'],
+      confirmed: true
     },{
       where: {
         id: req.body['orderId']
@@ -486,6 +489,23 @@ async function confirmOrder(req, res) {
   catch (e) {
     console.log(e);
     res.send({message: 'error'});
+  }
+}
+
+// 删除订单
+async function deleteOrder(req, res) {
+  console.log(req.body);
+  try {
+    await Orders.destroy({
+      where: {
+        id: req.body['orderId']
+      }
+    });
+    res.send('success');
+  }
+  catch (e) {
+    console.log(e);
+    res.send("error");
   }
 }
 
